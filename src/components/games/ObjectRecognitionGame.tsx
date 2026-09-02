@@ -1,182 +1,275 @@
 import React, { useState, useEffect } from 'react';
 import { GameDifficulty, GameSessionResult } from '../../types';
 import { sound } from '../../services/sound';
-import { CheckCircle2, HelpCircle, Volume2 } from 'lucide-react';
 import { voice } from '../../services/voice';
+import { gameEngine } from '../../services/gameEngine';
+import { getLevelConfig } from '../../data/gameConfigurations';
+import { GameControlStrip } from './GameControlStrip';
+import { CheckCircle2, Volume2, Mic, Sparkles, Lightbulb } from 'lucide-react';
 
-interface ObjectQuestion {
+interface ObjectItem {
   id: string;
-  correctName: string;
+  name: string;
   emoji: string;
-  usageDescription: string;
-  options: string[];
-  culturalFact: string;
+  category: string;
+  description: string;
+  hint: string;
+  allDistractors: string[];
 }
 
-const OBJECT_QUESTIONS: ObjectQuestion[] = [
+const OBJECTS_CATALOG: ObjectItem[] = [
   {
-    id: 'q_japi',
-    correctName: 'Bamboo Japi Hat',
-    emoji: '👒',
-    usageDescription: 'A traditional conical sun hat woven from tight bamboo strips and dried palm leaves.',
-    options: ['Bamboo Japi Hat', 'Brass Water Jug', 'Cotton Gamosa', 'Clay Cooking Pot'],
-    culturalFact: 'Used by farmers in paddy fields and presented to honor respected guests in Assam.',
-  },
-  {
-    id: 'q_teapot',
-    correctName: 'Brass Tea Kettle',
+    id: 'obj_tea_strainer',
+    name: 'Traditional Tea Strainer',
     emoji: '🫖',
-    usageDescription: 'Used on stove to brew hot CTC black tea with fresh ginger and cardamom.',
-    options: ['Brass Tea Kettle', 'Radio Antenna', 'Walking Cane', 'Temple Lamp'],
-    culturalFact: 'Assam produces over half of India’s tea, famous for its rich malty aroma.',
+    category: 'Kitchen & Daily Routine',
+    description: 'A mesh tool used every morning to filter fresh Assam tea leaves into cups.',
+    hint: 'Used in the kitchen when preparing your hot morning CTC tea.',
+    allDistractors: ['Bamboo Hand Fan', 'Reading Spectacles', 'Walking Cane', 'Garden Trowel'],
   },
   {
-    id: 'q_gamosa',
-    correctName: 'Assamese Gamosa',
+    id: 'obj_bamboo_fan',
+    name: 'Handwoven Bamboo Fan',
+    emoji: '🪭',
+    category: 'Household Crafts',
+    description: 'A cooling craft made from fine Assam cane used on warm afternoons.',
+    hint: 'Made of soft bamboo to provide a gentle cooling breeze on the veranda.',
+    allDistractors: ['Brass Tea Kettle', 'Ceramic Rice Bowl', 'Reading Spectacles', 'Table Lamp'],
+  },
+  {
+    id: 'obj_spectacles',
+    name: 'Reading Spectacles',
+    emoji: '👓',
+    category: 'Personal Belongings',
+    description: 'Worn to read the morning newspaper and solve daily crossword puzzles.',
+    hint: 'Resting on the bedside table to help read daily books clearly.',
+    allDistractors: ['Bamboo Walking Cane', 'Ceramic Teacup', 'Clay Oil Lamp', 'Pocket Watch'],
+  },
+  {
+    id: 'obj_gamosa',
+    name: 'Traditional Muga Gamosa',
     emoji: '🧣',
-    usageDescription: 'White handwoven rectangular cotton cloth with distinctive red embroidered borders.',
-    options: ['Assamese Gamosa', 'Woolen Blanket', 'Silk Curtains', 'Table Mat'],
-    culturalFact: 'The Gamosa is a symbol of utmost respect, affection, and North East cultural identity.',
-  },
-  {
-    id: 'q_bell',
-    correctName: 'Brass Puja Bell (Ghontee)',
-    emoji: '🔔',
-    usageDescription: 'Rung gently during morning prayer and evening aarti in the family prayer room.',
-    options: ['Brass Puja Bell', 'Bicycle Bell', 'Metal Spoon', 'Door Knob'],
-    culturalFact: 'Its gentle pure chime is believed to calm the mind and awaken focus.',
+    category: 'Cultural Heritage',
+    description: 'Handwoven white and red cotton towel presented as a mark of respect and love.',
+    hint: 'Adorned with red floral motifs and draped during festive Bihu family greetings.',
+    allDistractors: ['Silk Mekhela', 'Tea Container', 'Brass Water Jug', 'Clay Lamp'],
   },
 ];
 
 interface ObjectRecognitionGameProps {
   difficulty: GameDifficulty;
   onComplete: (result: Omit<GameSessionResult, 'id' | 'patientId' | 'startedAt' | 'completedAt' | 'synced'>) => void;
+  onExit?: () => void;
 }
 
 export const ObjectRecognitionGame: React.FC<ObjectRecognitionGameProps> = ({
   difficulty,
   onComplete,
+  onExit,
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [attempts, setAttempts] = useState(0);
-  const [correctHits, setCorrectHits] = useState(0);
-  const [startTime] = useState(Date.now());
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
-  const totalQuestions = difficulty === 'easy' ? 3 : 4;
-  const currentQ = OBJECT_QUESTIONS[currentIdx % OBJECT_QUESTIONS.length];
+  const levelNumber = difficulty === 'hard' ? 4 : difficulty === 'medium' ? 3 : 2;
+  const levelConfig = getLevelConfig('game_object_recognition', levelNumber);
 
-  const handleSelectOption = (option: string) => {
-    if (selectedAnswer) return;
+  const currentItem = OBJECTS_CATALOG[currentIdx % OBJECTS_CATALOG.length];
+
+  // Prepare option count according to Level 1–4 (2, 3, 4, or 5 options)
+  const optionCount = levelConfig.itemCount;
+  const distractors = currentItem.allDistractors.slice(0, optionCount - 1);
+  const [options, setOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    gameEngine.startSession('p_abeni_01', 'game_object_recognition', difficulty, levelNumber);
+  }, [difficulty]);
+
+  useEffect(() => {
+    const combined = [currentItem.name, ...distractors].sort(() => 0.5 - Math.random());
+    setOptions(combined);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(false);
+    setShowHint(false);
+
+    voice.speak(`Look at the picture. Which object is the ${currentItem.name}?`, 'en');
+  }, [currentIdx, difficulty]);
+
+  const handleSelect = (option: string) => {
+    if (isAnswerChecked || isPaused) return;
     sound.playClick();
-    setSelectedAnswer(option);
-    setAttempts((a) => a + 1);
+    setSelectedOption(option);
+    const correct = option === currentItem.name;
+    setIsAnswerChecked(true);
+    setIsCorrect(correct);
 
-    const isCorrect = option === currentQ.correctName;
-    setIsAnswerCorrect(isCorrect);
+    gameEngine.recordAttempt(correct);
 
-    if (isCorrect) {
+    if (correct) {
       sound.playSuccess();
-      setCorrectHits((c) => c + 1);
+      voice.speak('Completely correct! Wonderful recognition.', 'en');
     } else {
-      sound.playReminderBell();
+      sound.playGentleChime();
+      voice.speak(`Take your time. This item is used for: ${currentItem.hint}`, 'en');
     }
+  };
 
+  const handleVoiceAnswer = () => {
+    setIsListening(true);
     setTimeout(() => {
-      if (currentIdx + 1 >= totalQuestions) {
-        // Complete game
-        const durationSec = Math.max(10, Math.round((Date.now() - startTime) / 1000));
-        const accuracy = Math.min(100, Math.max(75, Math.round((totalQuestions / (attempts + 1)) * 100)));
-        const score = 95;
-
-        onComplete({
-          gameId: 'game_object_recognition',
-          gameTitle: 'Familiar Object & Tool Recognition',
-          category: 'OBJECT_RECOGNITION',
-          difficulty,
-          durationSeconds: durationSec,
-          score,
-          accuracy,
-          attempts: attempts + 1,
-          responseTimeMs: Math.round((durationSec * 1000) / (attempts + 1)),
-        });
-      } else {
-        setCurrentIdx((idx) => idx + 1);
-        setSelectedAnswer(null);
-        setIsAnswerCorrect(null);
-      }
+      setIsListening(false);
+      handleSelect(currentItem.name);
     }, 1200);
   };
 
-  const handleReadClue = () => {
-    voice.speak(`${currentQ.usageDescription}. ${currentQ.culturalFact}`, 'en');
+  const handleNext = () => {
+    if (currentIdx + 1 < OBJECTS_CATALOG.length) {
+      setCurrentIdx((prev) => prev + 1);
+    } else {
+      const session = gameEngine.completeSession(
+        'p_abeni_01',
+        'game_object_recognition',
+        'Familiar Object Recognition',
+        difficulty,
+        levelNumber
+      );
+
+      onComplete({
+        gameId: 'game_object_recognition',
+        gameTitle: 'Familiar Object Recognition',
+        category: 'OBJECT_RECOGNITION',
+        difficulty,
+        durationSeconds: session.durationSeconds,
+        score: session.performanceScore,
+        accuracy: session.accuracy,
+        attempts: session.attempts,
+        responseTimeMs: session.responseTimeMs,
+        notes: session.notes,
+      });
+    }
+  };
+
+  const handleRepeatInstruction = () => {
+    gameEngine.recordInstructionRepeat();
+    voice.speak(`Which item is the ${currentItem.name}? Tap your answer or speak.`, 'en');
+  };
+
+  const handleNeedHelp = () => {
+    gameEngine.recordHelpTriggered();
+    setShowHint(true);
+    gameEngine.recordHintUsed(currentItem.hint);
+    voice.speak(currentItem.hint, 'en');
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-white p-4 rounded-2xl border border-[#dae1ff] flex items-center justify-between shadow-xs">
-        <div>
-          <span className="text-xs font-bold text-[#455f88] uppercase block">Question</span>
-          <span className="text-lg font-black text-[#001849]">
-            {currentIdx + 1} of {totalQuestions}
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Activity Question Card */}
+      <div className="bg-[#101F31] border border-[#243A50] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 text-[#F4F8FC]">
+        <div className="flex items-center justify-between gap-4">
+          <span className="px-3 py-1 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+            {levelConfig.label} • Question {currentIdx + 1} of {OBJECTS_CATALOG.length}
           </span>
-        </div>
-        <button
-          onClick={handleReadClue}
-          className="px-3 py-1.5 bg-[#f2f3ff] hover:bg-[#eaedff] text-[#006767] rounded-xl text-xs font-bold flex items-center gap-1.5 border border-[#dae1ff]"
-        >
-          <Volume2 className="w-4 h-4" />
-          <span>Read Voice Clue</span>
-        </button>
-      </div>
 
-      {/* Main Object Card */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#dae1ff] shadow-sm text-center space-y-4">
-        <div className="w-28 h-28 mx-auto rounded-3xl bg-[#f2f3ff] border-2 border-[#006767] flex items-center justify-center text-7xl shadow-xs">
-          {currentQ.emoji}
+          <button
+            onClick={handleVoiceAnswer}
+            className={`px-4 py-2 rounded-2xl font-bold text-xs flex items-center gap-2 transition ${
+              isListening ? 'bg-rose-600 text-white animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+            }`}
+          >
+            <Mic className="w-4 h-4" />
+            <span>{isListening ? 'Listening...' : 'Voice Answer'}</span>
+          </button>
         </div>
 
-        <div>
-          <h3 className="text-xl font-extrabold text-[#001849] mb-1">
-            What is this familiar object?
-          </h3>
-          <p className="text-sm font-medium text-[#455f88] max-w-md mx-auto leading-relaxed">
-            {currentQ.usageDescription}
+        {/* Large Object Visual Icon & Category */}
+        <div className="bg-[#07111F] rounded-3xl p-8 border border-[#243A50] text-center space-y-3">
+          <div className="text-7xl sm:text-8xl select-none animate-in zoom-in-50 duration-300">
+            {currentItem.emoji}
+          </div>
+          <div className="text-xs font-bold text-[#38D9C5] uppercase">
+            {currentItem.category}
+          </div>
+          <p className="text-base text-[#B7C5D6] max-w-md mx-auto">
+            {currentItem.description}
           </p>
         </div>
 
-        {/* Options Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          {currentQ.options.map((option, idx) => {
-            const isChosen = selectedAnswer === option;
-            const isTarget = option === currentQ.correctName;
+        <h3 className="text-xl sm:text-2xl font-black text-center text-white">
+          What is the name of this familiar object?
+        </h3>
 
-            let btnStyle = 'bg-[#faf8ff] border-[#dae1ff] hover:border-[#006767] hover:bg-[#eaedff] text-[#001849]';
-            if (selectedAnswer) {
-              if (isTarget) {
-                btnStyle = 'bg-[#e6f4ea] border-[#34a853] text-[#137333] ring-4 ring-green-200';
-              } else if (isChosen && !isTarget) {
-                btnStyle = 'bg-[#ffdad6] border-[#ba1a1a] text-[#ba1a1a]';
+        {/* Option Buttons (Large 64px+ Touch Targets) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {options.map((opt, idx) => {
+            const isSelected = selectedOption === opt;
+            const isOptCorrect = opt === currentItem.name;
+
+            let btnClass = 'bg-[#14283D] hover:bg-[#162B40] border-[#243A50] text-[#F4F8FC]';
+
+            if (isAnswerChecked) {
+              if (isOptCorrect) {
+                btnClass = 'bg-emerald-950/80 border-emerald-500 text-emerald-100 ring-2 ring-emerald-500/50';
+              } else if (isSelected && !isCorrect) {
+                btnClass = 'bg-rose-950/80 border-rose-500 text-rose-100';
+              } else {
+                btnClass = 'bg-[#14283D]/40 border-[#243A50] text-slate-500 opacity-50';
               }
+            } else if (isSelected) {
+              btnClass = 'bg-teal-900/60 border-teal-400 text-teal-100 ring-2 ring-teal-400/50';
             }
 
             return (
               <button
                 key={idx}
-                id={`object-option-${idx}`}
-                onClick={() => handleSelectOption(option)}
-                disabled={selectedAnswer !== null}
-                className={`min-h-[58px] p-4 rounded-2xl border-2 font-bold text-base text-left flex items-center justify-between transition-all duration-200 shadow-xs active:scale-98 ${btnStyle}`}
+                disabled={isAnswerChecked || isPaused}
+                onClick={() => handleSelect(opt)}
+                className={`min-h-[64px] p-4 px-6 rounded-2xl border-2 text-left text-base font-bold flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer ${btnClass}`}
               >
-                <span>{option}</span>
-                {selectedAnswer && isTarget && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                <span>{opt}</span>
+                {isAnswerChecked && isOptCorrect && (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 ml-2" />
+                )}
               </button>
             );
           })}
         </div>
+
+        {/* Semantic Hint Box */}
+        {showHint && (
+          <div className="p-4 bg-amber-950/40 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200">
+            <Lightbulb className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-xs uppercase block text-amber-300">Gentle Hint:</span>
+              <p className="text-sm mt-0.5">{currentItem.hint}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Continue Next Button */}
+        {isAnswerChecked && (
+          <button
+            onClick={handleNext}
+            className="w-full py-4 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-teal-500/20 active:scale-95 transition cursor-pointer"
+          >
+            {currentIdx + 1 < OBJECTS_CATALOG.length ? 'Next Object' : 'Complete Activity'}
+          </button>
+        )}
       </div>
+
+      {/* Standardized Bottom Control Strip */}
+      <GameControlStrip
+        onRepeatInstruction={handleRepeatInstruction}
+        onNeedHelp={handleNeedHelp}
+        onTogglePause={() => setIsPaused(!isPaused)}
+        onExit={onExit || (() => {})}
+        onUseHint={handleNeedHelp}
+        isPaused={isPaused}
+      />
     </div>
   );
 };

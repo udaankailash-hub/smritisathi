@@ -1,0 +1,48 @@
+name: mementocare_patient_app
+description: "MementoCare AI — Offline-first, voice-assisted cognitive engagement and memory-support platform for elderly dementia patients."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # Local Offline Database
+  drift: ^2.14.1
+  sqlite3_flutter_libs: ^0.5.18
+  path_provider: ^2.1.2
+  path: ^1.8.3
+
+  # Voice & Audio
+  speech_to_text: ^6.6.1
+  flutter_tts: ^3.8.5
+  audioplayers: ^5.2.1
+
+  # Network & Sync
+  http: ^1.2.0
+  connectivity_plus: ^5.0.2
+  uuid: ^4.3.3
+  intl: ^0.19.0
+
+  # State Management & Utilities
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  cached_network_image: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  drift_dev: ^2.14.1
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/audio/

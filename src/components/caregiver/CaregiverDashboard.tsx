@@ -37,6 +37,7 @@ import { voice } from '../../services/voice';
 import { HealthcareWorkerReportModal } from './HealthcareWorkerReportModal';
 import { FamilyMemoryAlbum } from '../patient/FamilyMemoryAlbum';
 import { CaregiverAlertCenter } from './CaregiverAlertCenter';
+import { CaregiverCognitiveAnalytics } from './CaregiverCognitiveAnalytics';
 
 interface CaregiverDashboardProps {
   patient: PatientProfile;
@@ -305,6 +306,9 @@ export const CaregiverDashboard: React.FC<CaregiverDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Longitudinal Cognitive Analytics & Trends (7d / 30d / 90d) */}
+      <CaregiverCognitiveAnalytics patientName={patient.name} />
 
       {/* Two Column Grid: Left = Routine & Alerts; Right = Cognitive Analytics & Notes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

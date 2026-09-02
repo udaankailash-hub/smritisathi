@@ -6,15 +6,32 @@ const LOCAL_REMINDERS_KEY = 'mindcare_local_reminders';
 const LOCAL_HYDRATION_KEY = 'mindcare_local_hydration';
 const OFFLINE_OVERRIDE_KEY = 'mindcare_simulated_offline';
 
+const memStore: Record<string, string> = {};
+
+function getStorageItem(key: string): string | null {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem(key);
+  }
+  return memStore[key] || null;
+}
+
+function setStorageItem(key: string, value: string) {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(key, value);
+  } else {
+    memStore[key] = value;
+  }
+}
+
 export class OfflineSyncManager {
   private isSimulatedOffline: boolean = false;
   private listeners: Array<() => void> = [];
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(OFFLINE_OVERRIDE_KEY);
-      this.isSimulatedOffline = stored === 'true';
+    const stored = getStorageItem(OFFLINE_OVERRIDE_KEY);
+    this.isSimulatedOffline = stored === 'true';
 
+    if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.handleNetworkChange());
       window.addEventListener('offline', () => this.handleNetworkChange());
     }
@@ -41,9 +58,7 @@ export class OfflineSyncManager {
 
   public setSimulatedOffline(offline: boolean) {
     this.isSimulatedOffline = offline;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(OFFLINE_OVERRIDE_KEY, String(offline));
-    }
+    setStorageItem(OFFLINE_OVERRIDE_KEY, String(offline));
     this.notify();
     if (!offline) {
       this.syncNow();
@@ -90,18 +105,20 @@ export class OfflineSyncManager {
   }
 
   public getQueue(): SyncQueueItem[] {
-    if (typeof window === 'undefined') return [];
     try {
-      const data = localStorage.getItem(SYNC_QUEUE_KEY);
+      const data = getStorageItem(SYNC_QUEUE_KEY);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   }
 
+  public getLocalQueue(): SyncQueueItem[] {
+    return this.getQueue();
+  }
+
   private saveQueue(queue: SyncQueueItem[]) {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    setStorageItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
   }
 
   public getPendingCount(): number {
@@ -110,7 +127,6 @@ export class OfflineSyncManager {
 
   // Save session locally
   public saveLocalSession(session: GameSessionResult) {
-    if (typeof window === 'undefined') return;
     const existing = this.getLocalSessions();
     const index = existing.findIndex((s) => s.id === session.id);
     if (index >= 0) {
@@ -118,14 +134,13 @@ export class OfflineSyncManager {
     } else {
       existing.unshift(session);
     }
-    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(existing));
+    setStorageItem(LOCAL_SESSIONS_KEY, JSON.stringify(existing));
     this.enqueue(session.patientId, 'GAME_SESSION', session.id, 'CREATE', session);
   }
 
   public getLocalSessions(): GameSessionResult[] {
-    if (typeof window === 'undefined') return [];
     try {
-      const data = localStorage.getItem(LOCAL_SESSIONS_KEY);
+      const data = getStorageItem(LOCAL_SESSIONS_KEY);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];

@@ -144,6 +144,11 @@ class SoundSynthesizer {
     this.playReminderBell();
   }
 
+  // Gentle chime for encouraging feedback
+  public playGentleChime() {
+    this.playSuccess();
+  }
+
   // Gentle soft error / retry tone
   public playError() {
     if (this.isMuted) return;

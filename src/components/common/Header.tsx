@@ -197,6 +197,21 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
+              id="role-btn-asha"
+              onClick={() => {
+                sound.playClick();
+                onRoleChange('ASHA');
+              }}
+              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
+                currentRole === 'ASHA'
+                  ? 'bg-[#E580FF] text-[#07111F] font-black shadow-xs'
+                  : 'text-[#B7C5D6] hover:bg-[#14283D] hover:text-[#F4F8FC]'
+              }`}
+            >
+              <span>👩‍⚕️ ASHA Cluster</span>
+            </button>
+
+            <button
               id="role-btn-doctor"
               onClick={() => {
                 sound.playClick();
@@ -234,17 +249,28 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
         {/* Brand & Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#19C3B1] to-[#0A8E80] text-[#07111F] flex items-center justify-center shadow-xs">
-            <Brain className="w-6 h-6 stroke-[2.5]" />
+        <div 
+          onClick={() => {
+            sound.playClick();
+            onRoleChange('AWARENESS');
+          }}
+          className="flex items-center gap-3 cursor-pointer group"
+        >
+          <div className="w-11 h-11 rounded-xl overflow-hidden shadow-lg border border-[#19C3B1]/40 bg-[#07111F] p-0.5 relative group-hover:scale-105 transition-transform">
+            <img
+              src="/logo.png"
+              alt="MementoCare AI Logo"
+              className="w-full h-full object-cover rounded-lg"
+            />
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#19C3B1]/10 to-transparent pointer-events-none" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-[#F4F8FC] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-[#F4F8FC] tracking-tight group-hover:text-[#38D9C5] transition-colors">
                 {t.appName}
               </h1>
               <span className="bg-[#14283D] border border-[#243A50] text-[#38D9C5] text-[10px] font-black px-2 py-0.5 rounded-full">
-                NER Edition
+                SIH26003
               </span>
             </div>
             <p className="text-xs font-semibold text-[#B7C5D6] hidden sm:block">

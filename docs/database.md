@@ -1,188 +1,79 @@
-# MindCare NER — Database Architecture & Schema Specification
+# MementoCare AI — Database & Schema Specification
 
-**Database Targets:** PostgreSQL 15+ / Supabase Relational Engine  
-**Naming Standard:** `snake_case` tables and columns  
-**Migration Paradigm:** Safe additive migrations with backward-compatible aliases
+## 1. Relational Entities (PostgreSQL / Supabase)
 
----
+### Table: `users`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique user identifier |
+| `role` | VARCHAR(32) | NOT NULL, CHECK in (PATIENT, CAREGIVER, HEALTHCARE_WORKER, ADMIN) | Role assignment |
+| `name` | VARCHAR(255) | NOT NULL | Full user name |
+| `email` | VARCHAR(255) | UNIQUE | Authentication email |
+| `phone` | VARCHAR(32) | | Contact phone |
+| `language` | VARCHAR(16) | NOT NULL DEFAULT 'en' | Preferred locale |
+| `created_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | Registration timestamp |
+| `updated_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | Last update timestamp |
 
-## 1. Relational Entity Relationship Model
+### Table: `patients`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY | Unique patient record |
+| `user_id` | UUID | REFERENCES users(id) | Linked user account |
+| `preferred_language` | VARCHAR(16) | NOT NULL DEFAULT 'en' | Primary spoken dialect |
+| `difficulty_level` | VARCHAR(16) | CHECK in (easy, medium, hard) | Adaptive difficulty level |
+| `consent_state` | VARCHAR(32) | CHECK in (PENDING, APPROVED, PAUSED, WITHDRAWN) | DPDP Consent state |
+| `age` | INTEGER | NOT NULL DEFAULT 72 | Age |
+| `gender` | VARCHAR(16) | | Gender |
+| `location` | VARCHAR(255) | | Region (e.g. Guwahati, Assam) |
+| `battery_level` | INTEGER | DEFAULT 85 | Tablet battery telemetry |
+| `is_device_online` | BOOLEAN | DEFAULT true | Edge connectivity state |
+| `last_synced_at` | TIMESTAMPTZ | | Last outbox sync time |
 
-```
-+------------------+         +-----------------------+         +-------------------------+
-|     users        | 1 --- * |   patient_profiles    | 1 --- * |     game_sessions       |
-+------------------+         +-----------------------+         +-------------------------+
-| id (UUID, PK)    |         | id (UUID, PK)         |         | id (UUID, PK)           |
-| email (VARCHAR)  |         | user_id (FK -> users) |         | patient_id (FK)         |
-| role (ENUM)      |         | dementia_stage (TEXT) |         | game_id (TEXT)          |
-| language (VARCHAR)         | caregiver_id (FK)     |         | score (INT)             |
-| created_at (TS)  |         | settings (JSONB)      |         | accuracy (INT)          |
-+------------------+         +-----------------------+         | duration_seconds (INT)  |
-                                    |        |                 | synced (BOOLEAN)        |
-                                    |        |                 +-------------------------+
-                                    |        |
-                                    |        +-----------------+
-                                    |                          |
-                                    v                          v
-                       +-------------------------+   +-------------------+
-                       |      memory_albums      |   | caregiver_alerts  |
-                       +-------------------------+   +-------------------+
-                       | id (UUID, PK)           |   | id (UUID, PK)     |
-                       | patient_id (FK)         |   | patient_id (FK)   |
-                       | title (VARCHAR)         |   | type (ENUM)       |
-                       | created_by (FK)         |   | severity (ENUM)   |
-                       +-------------------------+   | status (ENUM)     |
-                                    |                | resolved_by (FK)  |
-                                    v                +-------------------+
-                       +-------------------------+
-                       |      memory_items       |
-                       +-------------------------+
-                       | id (UUID, PK)           |
-                       | album_id (FK)           |
-                       | type (ENUM)             |
-                       | image_url (TEXT)        |
-                       | question (TEXT)         |
-                       | options (JSONB)         |
-                       | correct_index (INT)     |
-                       | approved (BOOLEAN)      |
-                       +-------------------------+
-```
+### Table: `caregivers`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY | Caregiver link ID |
+| `user_id` | UUID | REFERENCES users(id) | Caregiver user record |
+| `patient_id` | UUID | REFERENCES patients(id) | Linked senior patient |
+| `permission_scope` | VARCHAR(64) | CHECK in (FULL_SUPPORT, READ_ONLY, EMERGENCY_ONLY) | Granular permission |
+| `relationship` | VARCHAR(64) | | Relationship (e.g. Daughter) |
 
----
+### Table: `memories` (Personal Memory Graph)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY | Memory node ID |
+| `patient_id` | UUID | REFERENCES patients(id) | Senior recipient |
+| `category` | VARCHAR(32) | CHECK in (PEOPLE, PLACES, EVENTS, OBJECTS, PREFERENCES, DAILY_ROUTINE) | High-level pillar |
+| `subcategory` | VARCHAR(64) | NOT NULL | Detailed subcategory |
+| `asset_path` | VARCHAR(1024)| NOT NULL | Private encrypted photo path |
+| `human_label` | VARCHAR(255) | NOT NULL | Verified human description |
+| `language` | VARCHAR(16) | DEFAULT 'en' | Language code |
+| `approval_state` | VARCHAR(32) | CHECK in (DRAFT, PENDING_REVIEW, APPROVED, REJECTED) | Caregiver review state |
+| `consent_state` | VARCHAR(32) | CHECK in (PENDING, APPROVED, PAUSED, WITHDRAWN) | DPDP Consent status |
+| `source` | VARCHAR(64) | DEFAULT 'CAREGIVER_UPLOAD' | Memory origin |
+| `activity_draft_json` | JSONB | | Bounded question & options |
+| `approved_at` | TIMESTAMPTZ | | Approval timestamp |
 
-## 2. Core Tables Schema Definition
+### Table: `game_sessions` (Immutable Events)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY | Session ID |
+| `patient_id` | UUID | REFERENCES patients(id) | Patient |
+| `game_id` | UUID | REFERENCES games(id) | Cognitive activity played |
+| `event_id` | VARCHAR(128) | UNIQUE, NOT NULL | Idempotent event identifier |
+| `score` | INTEGER | CHECK (0 to 100) | Activity performance score |
+| `accuracy` | INTEGER | CHECK (0 to 100) | Interaction accuracy |
+| `response_ms` | INTEGER | NOT NULL | Response latency in ms |
+| `attempts` | INTEGER | NOT NULL DEFAULT 1 | Total attempts |
+| `assistance_used`| VARCHAR(255)| | Hints or audio repeats used |
+| `completion_status`| VARCHAR(32)| CHECK in (COMPLETED, PAUSED_BY_USER, ABORTED) | Status |
 
-### 2.1 `users`
-```sql
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE,
-  phone VARCHAR(50),
-  role VARCHAR(50) NOT NULL CHECK (role IN ('PATIENT', 'CAREGIVER', 'HEALTHCARE_WORKER', 'ADMIN')),
-  language VARCHAR(10) NOT NULL DEFAULT 'en',
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 2.2 `patient_profiles`
-```sql
-CREATE TABLE IF NOT EXISTS patient_profiles (
-  id VARCHAR(64) PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  age INT NOT NULL CHECK (age >= 0),
-  gender VARCHAR(20) NOT NULL,
-  location VARCHAR(255) NOT NULL,
-  primary_language VARCHAR(10) NOT NULL DEFAULT 'en',
-  dementia_stage VARCHAR(100) NOT NULL,
-  caregiver_name VARCHAR(255),
-  caregiver_phone VARCHAR(50),
-  caregiver_relationship VARCHAR(100),
-  assigned_doctor VARCHAR(255),
-  doctor_hospital VARCHAR(255),
-  battery_level INT DEFAULT 100,
-  is_device_online BOOLEAN DEFAULT TRUE,
-  last_active TIMESTAMPTZ DEFAULT NOW(),
-  last_synced_at TIMESTAMPTZ DEFAULT NOW(),
-  accessibility_settings JSONB NOT NULL DEFAULT '{
-    "fontSize": "large",
-    "highContrast": false,
-    "voicePrompts": true,
-    "reducedMotion": false
-  }'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 2.3 `memory_albums` & `memory_items`
-```sql
-CREATE TABLE IF NOT EXISTS memory_albums (
-  id VARCHAR(64) PRIMARY KEY,
-  patient_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  cover_image_url TEXT,
-  created_by VARCHAR(64) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS memory_items (
-  id VARCHAR(64) PRIMARY KEY,
-  album_id VARCHAR(64) NOT NULL REFERENCES memory_albums(id) ON DELETE CASCADE,
-  patient_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
-  type VARCHAR(32) NOT NULL CHECK (type IN ('PERSON', 'PLACE', 'MILESTONE', 'OBJECT')),
-  title VARCHAR(255) NOT NULL,
-  subtitle VARCHAR(255),
-  image_url TEXT NOT NULL,
-  audio_prompt_url TEXT,
-  voice_note_text TEXT,
-  question TEXT NOT NULL,
-  options JSONB NOT NULL,
-  correct_option_index INT NOT NULL,
-  hint TEXT,
-  approved_by_caregiver BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 2.4 `caregiver_alerts`
-```sql
-CREATE TABLE IF NOT EXISTS caregiver_alerts (
-  id VARCHAR(64) PRIMARY KEY,
-  patient_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
-  type VARCHAR(64) NOT NULL CHECK (type IN (
-    'MISSED_MEDICINE', 'PROLONGED_INACTIVITY', 'COGNITIVE_DROP',
-    'DEVICE_OFFLINE', 'SYNC_DELAY', 'ASSISTANCE_REQUEST'
-  )),
-  severity VARCHAR(20) NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-  title VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL,
-  status VARCHAR(32) NOT NULL CHECK (status IN ('UNREAD', 'ACKNOWLEDGED', 'RESOLVED', 'DISMISSED')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  resolved_at TIMESTAMPTZ,
-  resolved_by VARCHAR(255)
-);
-```
-
-### 2.5 `garden_progress` & `garden_items`
-```sql
-CREATE TABLE IF NOT EXISTS garden_progress (
-  patient_id VARCHAR(64) PRIMARY KEY REFERENCES patient_profiles(id) ON DELETE CASCADE,
-  total_flowers INT NOT NULL DEFAULT 0,
-  total_plants INT NOT NULL DEFAULT 0,
-  total_butterflies INT NOT NULL DEFAULT 0,
-  tree_growth_stage INT NOT NULL DEFAULT 1 CHECK (tree_growth_stage BETWEEN 1 AND 5),
-  last_bloom_date TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS garden_items (
-  id VARCHAR(64) PRIMARY KEY,
-  patient_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
-  type VARCHAR(32) NOT NULL CHECK (type IN ('FLOWER', 'PLANT', 'BUTTERFLY', 'TREE')),
-  name VARCHAR(255) NOT NULL,
-  cultural_name VARCHAR(255) NOT NULL,
-  earned_by VARCHAR(255) NOT NULL,
-  stage INT NOT NULL DEFAULT 1,
-  color VARCHAR(32) NOT NULL,
-  earned_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 2.6 `audit_logs`
-```sql
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id VARCHAR(64) PRIMARY KEY,
-  user_id VARCHAR(64) NOT NULL,
-  user_name VARCHAR(255) NOT NULL,
-  user_role VARCHAR(50) NOT NULL,
-  action VARCHAR(100) NOT NULL,
-  resource VARCHAR(100) NOT NULL,
-  resource_id VARCHAR(100) NOT NULL,
-  metadata JSONB,
-  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+### Table: `sync_queue` (Outbox Pattern)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | UUID | PRIMARY KEY | Outbox entry ID |
+| `event_id` | VARCHAR(128) | UNIQUE, NOT NULL | Idempotent event identifier |
+| `entity_type`| VARCHAR(64) | NOT NULL | Entity (e.g. GAME_SESSION) |
+| `payload` | JSONB | NOT NULL | Event data payload |
+| `attempts` | INTEGER | DEFAULT 0 | Retry attempt counter |
+| `sync_state` | VARCHAR(32) | CHECK in (PENDING, SYNCING, SYNCED, FAILED) | Outbox sync state |

@@ -1,207 +1,248 @@
 import React, { useState, useEffect } from 'react';
 import { GameDifficulty, GameSessionResult } from '../../types';
 import { sound } from '../../services/sound';
-import { Music, Play, CheckCircle2, RotateCcw } from 'lucide-react';
+import { voice } from '../../services/voice';
+import { gameEngine } from '../../services/gameEngine';
+import { getLevelConfig } from '../../data/gameConfigurations';
+import { GameControlStrip } from './GameControlStrip';
+import { Music, Play, RotateCcw, Volume2, Sparkles } from 'lucide-react';
 
-interface ChimeBell {
+interface ChimeItem {
   id: number;
   name: string;
-  color: string;
-  activeColor: string;
-  freq: number;
   emoji: string;
+  freq: number;
+  color: string;
 }
 
-const BELLS: ChimeBell[] = [
-  { id: 0, name: 'Amber Bell', color: 'bg-amber-100 border-amber-300 text-amber-900', activeColor: 'bg-amber-400 border-amber-500 text-white ring-4 ring-amber-300 scale-105', freq: 523.25, emoji: '🔔' },
-  { id: 1, name: 'Teal Bell', color: 'bg-teal-100 border-teal-300 text-teal-900', activeColor: 'bg-[#006767] border-teal-600 text-white ring-4 ring-teal-300 scale-105', freq: 659.25, emoji: '🎋' },
-  { id: 2, name: 'Sky Bell', color: 'bg-sky-100 border-sky-300 text-sky-900', activeColor: 'bg-sky-500 border-sky-600 text-white ring-4 ring-sky-300 scale-105', freq: 783.99, emoji: '🪘' },
-  { id: 3, name: 'Rose Bell', color: 'bg-rose-100 border-rose-300 text-rose-900', activeColor: 'bg-rose-500 border-rose-600 text-white ring-4 ring-rose-300 scale-105', freq: 1046.50, emoji: '🌸' },
+const CHIMES: ChimeItem[] = [
+  { id: 0, name: 'Bihu Dhol (Low)', emoji: '🪘', freq: 261.63, color: 'from-teal-500 to-emerald-600' }, // C4
+  { id: 1, name: 'Temple Bell (Mid)', emoji: '🔔', freq: 329.63, color: 'from-indigo-500 to-blue-600' },   // E4
+  { id: 2, name: 'Bamboo Flute (High)', emoji: '🪈', freq: 392.0, color: 'from-amber-500 to-orange-600' }, // G4
+  { id: 3, name: 'Brass Cymbal (Peak)', emoji: '✨', freq: 523.25, color: 'from-rose-500 to-pink-600' },    // C5
 ];
 
 interface RhythmPatternGameProps {
   difficulty: GameDifficulty;
   onComplete: (result: Omit<GameSessionResult, 'id' | 'patientId' | 'startedAt' | 'completedAt' | 'synced'>) => void;
+  onExit?: () => void;
 }
 
 export const RhythmPatternGame: React.FC<RhythmPatternGameProps> = ({
   difficulty,
   onComplete,
+  onExit,
 }) => {
   const [sequence, setSequence] = useState<number[]>([]);
   const [playerInput, setPlayerInput] = useState<number[]>([]);
   const [isPlayingSeq, setIsPlayingSeq] = useState(false);
-  const [activeBellId, setActiveBellId] = useState<number | null>(null);
+  const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
   const [round, setRound] = useState(1);
-  const [targetRounds] = useState(difficulty === 'easy' ? 3 : difficulty === 'medium' ? 4 : 5);
-  const [startTime] = useState(Date.now());
-  const [totalTaps, setTotalTaps] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-  // Play audio frequency for a bell
-  const playBellSound = (freq: number) => {
-    if (typeof window === 'undefined') return;
+  const levelNumber = difficulty === 'hard' ? 4 : difficulty === 'medium' ? 3 : 2;
+  const levelConfig = getLevelConfig('game_pattern_rhythm', levelNumber);
+  const targetSequenceLength = levelConfig.itemCount; // e.g. 2, 3, 4, or 5 items
+
+  useEffect(() => {
+    gameEngine.startSession('p_abeni_01', 'game_pattern_rhythm', difficulty, levelNumber);
+    startNewRound(1);
+  }, [difficulty]);
+
+  const startNewRound = (currentRound: number) => {
+    setPlayerInput([]);
+    setIsPlayingSeq(true);
+
+    // Generate sequence of length according to current round up to targetSequenceLength
+    const length = Math.min(targetSequenceLength, currentRound + 1);
+    const newSeq: number[] = [];
+    for (let i = 0; i < length; i++) {
+      newSeq.push(Math.floor(Math.random() * 4));
+    }
+    setSequence(newSeq);
+
+    // Playback sequence with chimes
+    setTimeout(() => {
+      playSequenceToUser(newSeq);
+    }, 600);
+  };
+
+  const playSequenceToUser = async (seq: number[]) => {
+    setIsPlayingSeq(true);
+    for (let i = 0; i < seq.length; i++) {
+      const chimeIdx = seq[i];
+      setActiveHighlight(chimeIdx);
+      playChimeTone(CHIMES[chimeIdx].freq);
+      await new Promise((r) => setTimeout(r, 600));
+      setActiveHighlight(null);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    setIsPlayingSeq(false);
+    voice.speak('Now repeat the sequence in order.', 'en');
+  };
+
+  const playChimeTone = (freq: number) => {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        const ctx = new AudioContextClass();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.45);
-      }
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.52);
     } catch {}
   };
 
-  const playSequence = (seqToPlay: number[]) => {
-    setIsPlayingSeq(true);
-    setPlayerInput([]);
+  const handleChimeClick = (chimeIdx: number) => {
+    if (isPlayingSeq || isPaused) return;
 
-    seqToPlay.forEach((bellId, index) => {
-      setTimeout(() => {
-        setActiveBellId(bellId);
-        playBellSound(BELLS[bellId].freq);
-        setTimeout(() => setActiveBellId(null), 400);
-      }, (index + 1) * 700);
-    });
+    sound.playClick();
+    playChimeTone(CHIMES[chimeIdx].freq);
+    setActiveHighlight(chimeIdx);
+    setTimeout(() => setActiveHighlight(null), 300);
 
-    setTimeout(() => {
-      setIsPlayingSeq(false);
-    }, (seqToPlay.length + 1) * 700);
-  };
-
-  // Start new round
-  const startNextRound = (currentSeq: number[]) => {
-    const nextBell = Math.floor(Math.random() * 4);
-    const newSeq = [...currentSeq, nextBell];
-    setSequence(newSeq);
-    setTimeout(() => {
-      playSequence(newSeq);
-    }, 500);
-  };
-
-  useEffect(() => {
-    setRound(1);
-    setTotalTaps(0);
-    startNextRound([]);
-  }, [difficulty]);
-
-  const handleBellClick = (bellId: number) => {
-    if (isPlayingSeq) return;
-    setActiveBellId(bellId);
-    playBellSound(BELLS[bellId].freq);
-    setTimeout(() => setActiveBellId(null), 300);
-
-    const nextInput = [...playerInput, bellId];
+    const nextInput = [...playerInput, chimeIdx];
     setPlayerInput(nextInput);
-    setTotalTaps((t) => t + 1);
 
-    const currentStep = nextInput.length - 1;
-    if (nextInput[currentStep] !== sequence[currentStep]) {
-      // Mistake: replay current sequence gently
-      sound.playReminderBell();
+    const stepIndex = nextInput.length - 1;
+    if (nextInput[stepIndex] !== sequence[stepIndex]) {
+      // Mistake
+      sound.playGentleChime();
+      gameEngine.recordAttempt(false);
+      voice.speak('Take your time. Listen to the rhythm again.', 'en');
       setTimeout(() => {
-        playSequence(sequence);
-      }, 700);
+        setPlayerInput([]);
+        playSequenceToUser(sequence);
+      }, 1000);
       return;
     }
 
     if (nextInput.length === sequence.length) {
-      // Completed this round!
+      // Completed current round sequence
       sound.playSuccess();
-      if (round >= targetRounds) {
-        // Complete whole game!
-        const durationSec = Math.max(10, Math.round((Date.now() - startTime) / 1000));
-        const accuracy = Math.min(100, Math.max(80, Math.round(((sequence.length * targetRounds) / (totalTaps + 1)) * 100)));
-        const score = Math.min(100, Math.max(85, 95));
+      gameEngine.recordAttempt(true);
 
+      if (sequence.length >= targetSequenceLength) {
+        // Game Finished
         setTimeout(() => {
+          const session = gameEngine.completeSession(
+            'p_abeni_01',
+            'game_pattern_rhythm',
+            'Sequence Memory & Rhythm',
+            difficulty,
+            levelNumber
+          );
+
           onComplete({
             gameId: 'game_pattern_rhythm',
-            gameTitle: 'Rhythm & Sound Sequence',
+            gameTitle: 'Sequence Memory & Rhythm',
             category: 'PATTERN',
             difficulty,
-            durationSeconds: durationSec,
-            score,
-            accuracy,
-            attempts: totalTaps + 1,
-            responseTimeMs: Math.round((durationSec * 1000) / (totalTaps + 1)),
+            durationSeconds: session.durationSeconds,
+            score: session.performanceScore,
+            accuracy: session.accuracy,
+            attempts: session.attempts,
+            responseTimeMs: session.responseTimeMs,
+            notes: session.notes,
           });
-        }, 500);
+        }, 800);
       } else {
         setRound((r) => r + 1);
-        setTimeout(() => {
-          startNextRound(sequence);
-        }, 800);
+        setTimeout(() => startNewRound(round + 1), 1200);
       }
     }
   };
 
+  const handleRepeatInstruction = () => {
+    gameEngine.recordInstructionRepeat();
+    playSequenceToUser(sequence);
+  };
+
+  const handleNeedHelp = () => {
+    gameEngine.recordHelpTriggered();
+    gameEngine.recordHintUsed('Slowed down sequence replay');
+    playSequenceToUser(sequence);
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      {/* Game State Header */}
-      <div className="bg-white p-4 rounded-2xl border border-[#dae1ff] flex items-center justify-between shadow-xs">
-        <div>
-          <span className="text-xs font-bold text-[#455f88] uppercase block">Sequence Step</span>
-          <span className="text-xl font-black text-[#001849]">
-            Level {round} of {targetRounds}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isPlayingSeq ? (
-            <span className="bg-[#fff7ed] text-[#ea580c] px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5 animate-pulse">
-              <Music className="w-4 h-4" />
-              Listen carefully...
-            </span>
-          ) : (
-            <span className="bg-[#f0fdf4] text-[#15803d] px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              Your turn: tap the bells!
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* 4 Chime Bells Grid */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#dae1ff] shadow-sm">
-        <div className="grid grid-cols-2 gap-4 sm:gap-6">
-          {BELLS.map((bell) => {
-            const isActive = activeBellId === bell.id;
-            return (
-              <button
-                key={bell.id}
-                id={`rhythm-bell-${bell.id}`}
-                onClick={() => handleBellClick(bell.id)}
-                disabled={isPlayingSeq}
-                className={`min-h-[140px] sm:min-h-[160px] rounded-3xl border-4 font-black text-center flex flex-col items-center justify-center transition-all duration-200 shadow-md ${
-                  isActive ? bell.activeColor : bell.color
-                }`}
-              >
-                <span className="text-5xl sm:text-6xl mb-2">{bell.emoji}</span>
-                <span className="text-base sm:text-lg">{bell.name}</span>
-              </button>
-            );
-          })}
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Top Banner */}
+      <div className="bg-[#101F31] border border-[#243A50] rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4 text-[#F4F8FC]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center justify-center">
+            <Music className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wider font-bold text-[#38D9C5]">
+              {levelConfig.label}
+            </div>
+            <div className="text-base font-black">
+              Sequence Length: <span className="text-[#38D9C5]">{sequence.length}</span> items
+            </div>
+          </div>
         </div>
 
-        {/* Replay Sequence Button */}
-        <div className="mt-6 text-center">
-          <button
-            id="replay-sequence-btn"
-            onClick={() => playSequence(sequence)}
-            disabled={isPlayingSeq}
-            className="px-5 py-2.5 bg-[#f2f3ff] hover:bg-[#eaedff] text-[#006767] font-bold text-sm rounded-xl border border-[#dae1ff] inline-flex items-center gap-2 transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Hear Rhythm Again</span>
-          </button>
-        </div>
+        <button
+          disabled={isPlayingSeq}
+          onClick={() => playSequenceToUser(sequence)}
+          className="px-4 py-2 bg-[#14283D] hover:bg-[#162B40] text-[#38D9C5] border border-[#243A50] rounded-2xl text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Replay Sequence</span>
+        </button>
       </div>
+
+      {/* 4 Large Chime Buttons (72px+ Height) */}
+      <div className="grid grid-cols-2 gap-4">
+        {CHIMES.map((chime) => {
+          const isGlowing = activeHighlight === chime.id;
+          return (
+            <button
+              key={chime.id}
+              disabled={isPlayingSeq || isPaused}
+              onClick={() => handleChimeClick(chime.id)}
+              className={`min-h-[140px] rounded-3xl p-6 border-2 flex flex-col items-center justify-center gap-3 transition-all duration-200 transform active:scale-95 cursor-pointer select-none ${
+                isGlowing
+                  ? 'bg-gradient-to-br ' + chime.color + ' border-white ring-4 ring-white/50 scale-105 shadow-2xl'
+                  : 'bg-[#101F31] hover:bg-[#14283D] border-[#243A50] hover:border-[#38D9C5]'
+              }`}
+            >
+              <span className="text-5xl">{chime.emoji}</span>
+              <span className="text-sm font-black text-white">{chime.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Progress Dots */}
+      <div className="flex items-center justify-center gap-2 py-2">
+        {sequence.map((_, idx) => (
+          <div
+            key={idx}
+            className={`w-3.5 h-3.5 rounded-full transition-all ${
+              idx < playerInput.length
+                ? 'bg-[#19C3B1] ring-2 ring-teal-400/40 scale-110'
+                : 'bg-[#243A50]'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Standardized Bottom Control Strip */}
+      <GameControlStrip
+        onRepeatInstruction={handleRepeatInstruction}
+        onNeedHelp={handleNeedHelp}
+        onTogglePause={() => setIsPaused(!isPaused)}
+        onExit={onExit || (() => {})}
+        onUseHint={handleNeedHelp}
+        isPaused={isPaused}
+      />
     </div>
   );
 };

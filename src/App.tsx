@@ -8,10 +8,12 @@ import { MusicTherapy } from './components/patient/MusicTherapy';
 import { VoiceAssistantModal } from './components/patient/VoiceAssistantModal';
 import { CaregiverDashboard } from './components/caregiver/CaregiverDashboard';
 import { DoctorDashboard } from './components/doctor/DoctorDashboard';
+import { AshaDashboard } from './components/asha/AshaDashboard';
 import { ArchitectureModal } from './components/admin/ArchitectureModal';
 import { AccessibilityDrawer } from './components/common/AccessibilityDrawer';
 import { PrivacyCenterModal } from './components/common/PrivacyCenterModal';
 import { DemonstrationModeModal } from './components/common/DemonstrationModeModal';
+import { DemoWalkthroughModal } from './components/common/DemoWalkthroughModal';
 import { AdminConsole } from './components/admin/AdminConsole';
 import { MindCareCompletePlatform } from './components/sections/MindCareCompletePlatform';
 import { AwarenessPlatformJourney } from './components/sections/AwarenessPlatformJourney';
@@ -45,24 +47,25 @@ export default function App() {
   const [isAccessibilityDrawerOpen, setIsAccessibilityDrawerOpen] = useState(false);
   const [isPrivacyCenterOpen, setIsPrivacyCenterOpen] = useState(false);
   const [isDemonstrationModeOpen, setIsDemonstrationModeOpen] = useState(false);
+  const [isDemoWalkthroughOpen, setIsDemoWalkthroughOpen] = useState(false);
 
-  // Patient Profile state
+  // Patient Profile state (Demo Persona: Abeni, 72)
   const [patient, setPatient] = useState<PatientProfile>({
-    id: 'p_dhiren_01',
-    userId: 'user_dhiren',
-    name: 'Dhiren Borah',
+    id: 'p_abeni_01',
+    userId: 'user_abeni',
+    name: 'Abeni',
     age: 72,
-    gender: 'male',
+    gender: 'female',
     location: 'Guwahati, Assam',
     primaryLanguage: 'en',
-    dementiaStage: 'Mild Cognitive Impairment',
+    dementiaStage: 'Supportive Monitoring',
     caregiverName: 'Priyanka Borah',
     caregiverPhone: '+91 94350 12345',
     caregiverRelationship: 'Daughter',
     assignedDoctor: 'Dr. Ananya Sharma',
     doctorHospital: 'Gauhati Medical College & Hospital (GMCH)',
     lastActive: new Date().toISOString(),
-    batteryLevel: 82,
+    batteryLevel: 85,
     isDeviceOnline: true,
     lastSyncedAt: new Date().toISOString(),
     accessibilitySettings: {
@@ -298,6 +301,19 @@ export default function App() {
               <button
                 onClick={() => {
                   sound.playClick();
+                  setCurrentRole('ASHA');
+                }}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  currentRole === 'ASHA'
+                    ? 'bg-[#E580FF] text-[#07111F]'
+                    : 'bg-[#14283D] text-[#B7C5D6] hover:text-[#F4F8FC] border border-[#243A50]'
+                }`}
+              >
+                ASHA Cluster
+              </button>
+              <button
+                onClick={() => {
+                  sound.playClick();
                   setCurrentRole('HEALTHCARE_WORKER');
                 }}
                 className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
@@ -459,6 +475,17 @@ export default function App() {
           />
         )}
 
+        {/* ASHA / COMMUNITY HEALTH WORKER ROLE EXPERIENCE */}
+        {currentRole === 'ASHA' && (
+          <AshaDashboard
+            currentLang={currentLang}
+            onOpenPatientDemo={(pId) => {
+              setCurrentRole('PATIENT');
+              setPatientView('dashboard');
+            }}
+          />
+        )}
+
         {/* CLINICIAN / DOCTOR ROLE EXPERIENCE */}
         {currentRole === 'HEALTHCARE_WORKER' && (
           <DoctorDashboard
@@ -526,6 +553,25 @@ export default function App() {
         onClose={() => setIsDemonstrationModeOpen(false)}
         onApplySimulation={handleApplyDemonstrationMode}
       />
+
+      {/* Interactive 90-Second SIH Demonstration Walkthrough Modal */}
+      <DemoWalkthroughModal
+        isOpen={isDemoWalkthroughOpen}
+        onClose={() => setIsDemoWalkthroughOpen(false)}
+        onSelectRole={(role) => setCurrentRole(role)}
+        onSelectGame={(gameId) => {
+          setSelectedGameId(gameId);
+          setPatientView('games');
+        }}
+        onToggleOffline={(offline) => setIsOffline(offline)}
+      />
+
+      {/* Statutory Medical Safety Disclaimer Footer */}
+      <footer className="mt-12 py-6 px-4 bg-[#07111F] border-t border-[#243A50] text-center text-xs text-[#7F91A6] max-w-7xl mx-auto rounded-2xl">
+        <p className="max-w-4xl mx-auto font-medium leading-relaxed">
+          <strong className="text-teal-400">Statutory Medical Safety Boundary:</strong> MementoCare AI supports cognitive engagement, routine assistance, and caregiver visibility. It does not diagnose dementia, measure disease severity, prescribe medicines, change medication, or replace doctors or qualified healthcare workers.
+        </p>
+      </footer>
     </div>
   );
 }

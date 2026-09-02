@@ -1,58 +1,42 @@
-# MindCare NER — Offline Synchronization & Edge Engine
+# MementoCare AI — Offline-First & Outbox Synchronisation Engine
 
-**Subsystem:** `OfflineSyncManager` & `SynchronizationService`  
-**Purpose:** Resilient edge computing for intermittent 2G/3G/Zero connectivity across the 8 North Eastern states of India.
+## 1. Zero-Network Architecture
 
----
+In the mountainous, flood-prone regions of North East India (e.g. Dima Hasao, Upper Subansiri, Tamenglong), cellular connectivity is frequently intermittent. MementoCare AI provides 100% offline continuity:
 
-## 1. Offline Philosophy
-
-In remote hilly terrains (such as Dima Hasao in Assam, Ukhrul in Manipur, or West Khasi Hills in Meghalaya), cellular data fluctuates continuously. MindCare NER operates under a **100% Offline-First Contract**:
-
-1. **All core cognitive activities run strictly client-side** using deterministic rule engines and synthesized Web Audio.
-2. **Mutations write immediately to local persistent storage** (`localStorage` / IndexedDB).
-3. **Network availability is passively monitored** via `navigator.onLine` and lightweight health pings.
-4. **When connectivity resumes, an idempotent batch sync occurs automatically** via `POST /api/sync`.
-
----
-
-## 2. Synchronization Lifecycle
-
-```
-[User Action: Game Complete / Med Taken]
-               │
-               ▼
-[OfflineSyncManager.saveLocalSession()] ────► [Write to Local Storage]
-               │
-               ├── (Is Network Online?)
-               │
-      NO ──────┴────── YES
-      │                │
-      ▼                ▼
-[Add to SyncQueue]  [Execute POST /api/sync Batch]
-[Status: PENDING]      │
-                       ├── (Server Response 200 OK)
-                       │
-              YES ─────┴───── NO (Timeout / 500)
-              │               │
-              ▼               ▼
-        [Mark SYNCED]   [Increment retryCount]
-        [Remove Item]   [Schedule Exponential Backoff]
+```text
+[Local SQLite / IndexedDB]
+       ↓ (enqueue event)
+[Outbox Queue (PENDING)]
+       ↓ (detect network)
+[Sync Worker with Exponential Backoff]
+       ↓ (idempotent POST /api/sync)
+[Server PostgreSQL / Supabase]
+       ↓ (200 OK Ack)
+[Outbox Queue (SYNCED)]
 ```
 
 ---
 
-## 3. Conflict Resolution Strategy
+## 2. Outbox Event Schema & Idempotency
+Every offline action receives an immutable event structure:
+```json
+{
+  "eventId": "evt_1725080000000_a1b2c3",
+  "entityType": "GAME_SESSION",
+  "payload": {
+    "patientId": "p_abeni_01",
+    "gameId": "game_memory_match",
+    "score": 94,
+    "accuracy": 94,
+    "responseMs": 1850,
+    "attempts": 1
+  },
+  "attemptCount": 1,
+  "syncState": "SYNCED",
+  "createdAt": "2026-08-31T05:10:00Z"
+}
+```
 
-- **Game Sessions:** Append-only architecture with globally unique UUIDs (`sess_<timestamp>_<rand>`). Conflict impossible because sessions are discrete immutable historical records.
-- **Reminder / Schedule Status:** **Timestamp-biased LWW (Last-Write-Wins)**. If the caregiver marks a medicine as "Assisted/Given" at 8:05 AM and the patient marks it as "Taken" at 8:04 AM, the later verified caregiver timestamp takes precedence.
-- **Accessibility & Language Settings:** Client settings take priority during local usage, and push updates upstream upon reconnect.
-
----
-
-## 4. Telemetry & User Feedback
-
-- The application header displays real-time connection status:
-  - 🟢 **Online (Cloud Sync Active)**
-  - 🟡 **Offline Edge Active (N pending sync items)**
-- One-tap manual sync button triggers immediate queue flush when signal improves.
+- **Conflict Policy:** Patient-completed sessions are immutable fact events. Server-approved memory metadata takes precedence in concurrent edits.
+- **Deduplication:** Server ignores events with previously acknowledged `event_id` keys, preventing duplicate session insertion.

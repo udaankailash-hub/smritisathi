@@ -106,10 +106,10 @@ export const GameCompletionModal: React.FC<GameCompletionModalProps> = ({
           <div className="p-3 bg-[#f2f3ff] rounded-xl">
             <div className="flex items-center justify-center gap-1 text-[#455f88] mb-1">
               <Target className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase">{t.score}</span>
+              <span className="text-xs font-bold uppercase">Attempts</span>
             </div>
             <span className="text-2xl font-black text-[#001849]">
-              {session.score}
+              {session.attempts || 1}
             </span>
           </div>
 
@@ -121,6 +121,21 @@ export const GameCompletionModal: React.FC<GameCompletionModalProps> = ({
             <span className="text-2xl font-black text-[#001849]">
               {session.durationSeconds}s
             </span>
+          </div>
+        </div>
+
+        {/* Sync & Non-Diagnostic Notice */}
+        <div className="bg-[#f0f9f8] border border-[#a5d8d4] p-3 rounded-xl text-xs space-y-1">
+          <div className="font-bold text-[#004f4f] flex items-center justify-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-[#006767]" />
+            <span>
+              {session.synced
+                ? '✓ Activity recorded & synchronised with caregiver portal'
+                : 'Saved locally on this device. Synchronises when network returns.'}
+            </span>
+          </div>
+          <div className="text-[10px] text-[#455f88] italic">
+            Application interaction information only. This is not a clinical diagnosis or measure of disease severity.
           </div>
         </div>
 

@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg-main: #0B132B;
+  --bg-surface: #131E3A;
+  --bg-card: #1C2B4E;
+  --border-subtle: #2A3F6D;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --teal-primary: #14B8A6;
+  --teal-hover: #0D9488;
+  --sky-primary: #0284C7;
+  --amber-primary: #D97706;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #0B132B;
+  color: #F8FAFC;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B132B;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A3F6D;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #14B8A6;
+}
+
+/* Senior Touch Target Helpers */
+.senior-touch-btn {
+  min-height: 56px;
+  touch-action: manipulation;
+}
+
+/* Smooth Focus Rings for Accessibility */
+*:focus-visible {
+  outline: 2px solid #14B8A6;
+  outline-offset: 2px;
+}

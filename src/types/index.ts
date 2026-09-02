@@ -1,4 +1,22 @@
-export type UserRole = 'AWARENESS' | 'PATIENT' | 'CAREGIVER' | 'HEALTHCARE_WORKER' | 'ADMIN';
+export type UserRole = 'AWARENESS' | 'PATIENT' | 'CAREGIVER' | 'ASHA' | 'HEALTHCARE_WORKER' | 'ADMIN';
+
+export interface AshaPatientItem {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  village: string;
+  familyHead: string;
+  caregiverName: string;
+  caregiverPhone: string;
+  priorityStatus: 'CHECK_IN_RECOMMENDED' | 'FOLLOW_UP' | 'ROUTINE';
+  priorityReason: string;
+  lastVisitDate: string;
+  lastSessionScore: number;
+  reminderAdherence: number;
+  syncPending: boolean;
+  notes: string;
+}
 
 export type SupportedLanguage = 'en' | 'as' | 'bn' | 'mni' | 'lus' | 'kha' | 'hi';
 

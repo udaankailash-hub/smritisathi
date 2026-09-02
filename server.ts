@@ -61,6 +61,30 @@ interface PatientRecord {
 }
 
 const PATIENTS: Record<string, PatientRecord> = {
+  p_abeni_01: {
+    id: 'p_abeni_01',
+    name: 'Abeni',
+    age: 72,
+    gender: 'female',
+    location: 'Guwahati, Assam',
+    primaryLanguage: 'en',
+    dementiaStage: 'Supportive Monitoring',
+    caregiverName: 'Priyanka Borah',
+    caregiverPhone: '+91 94350 12345',
+    caregiverRelationship: 'Daughter',
+    assignedDoctor: 'Dr. Ananya Sharma',
+    doctorHospital: 'Gauhati Medical College & Hospital (GMCH)',
+    lastActive: new Date().toISOString(),
+    batteryLevel: 85,
+    isDeviceOnline: true,
+    lastSyncedAt: new Date(Date.now() - 2 * 60000).toISOString(),
+    accessibilitySettings: {
+      fontSize: 'large',
+      highContrast: false,
+      voicePrompts: true,
+      reducedMotion: false,
+    },
+  },
   p_dhiren_01: {
     id: 'p_dhiren_01',
     name: 'Dhiren Borah',
@@ -68,7 +92,7 @@ const PATIENTS: Record<string, PatientRecord> = {
     gender: 'male',
     location: 'Guwahati, Assam',
     primaryLanguage: 'en',
-    dementiaStage: 'Mild Cognitive Impairment',
+    dementiaStage: 'Supportive Monitoring',
     caregiverName: 'Priyanka Borah',
     caregiverPhone: '+91 94350 12345',
     caregiverRelationship: 'Daughter',
@@ -92,7 +116,7 @@ const PATIENTS: Record<string, PatientRecord> = {
     gender: 'female',
     location: 'Shillong, Meghalaya',
     primaryLanguage: 'kha',
-    dementiaStage: 'Early Stage',
+    dementiaStage: 'Supportive Monitoring',
     caregiverName: 'Daniel Syiem',
     caregiverPhone: '+91 98620 67890',
     caregiverRelationship: 'Son',

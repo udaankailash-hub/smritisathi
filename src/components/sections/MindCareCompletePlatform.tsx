@@ -2086,14 +2086,15 @@ export const MindCareCompletePlatform: React.FC<MindCareCompletePlatformProps> =
       <footer className="bg-[#0B1726] border border-[#243A50] text-[#B7C5D6] rounded-3xl p-8 sm:p-12 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#19C3B1]" />
-              <h3 className="font-black text-lg text-[#F4F8FC]">MINDCARE NER</h3>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#19C3B1]/40 bg-[#07111F] p-0.5 shadow-md flex-shrink-0">
+                <img src="/logo.png" alt="MementoCare AI Logo" className="w-full h-full object-cover rounded-lg" />
+              </div>
+              <h3 className="font-black text-lg text-[#F4F8FC] tracking-tight">MementoCare AI • SIH26003</h3>
             </div>
             <p className="text-xs text-[#B7C5D6] leading-relaxed max-w-md">
-              An AI-enabled personalized cognitive assistance and longitudinal monitoring platform
-              designed to support cognitive engagement, daily functioning, and caregiver support
-              across the North Eastern Region of India.
+              AI that remembers the person, not just the score. An AI-enabled personalized cognitive assistance
+              and longitudinal care platform purpose-built for elderly seniors across North East India.
             </p>
           </div>
 

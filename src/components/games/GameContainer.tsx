@@ -31,6 +31,7 @@ import { RhythmPatternGame } from './RhythmPatternGame';
 import { DailyRoutineGame } from './DailyRoutineGame';
 import { ObjectRecognitionGame } from './ObjectRecognitionGame';
 import { FamiliarSoundGame } from './FamiliarSoundGame';
+import { PersonalMemoryGame } from './PersonalMemoryGame';
 import { FamilyMemoryAlbum } from '../patient/FamilyMemoryAlbum';
 import { PersonalStoryMode } from '../patient/PersonalStoryMode';
 import { GameCompletionModal } from './GameCompletionModal';
@@ -181,6 +182,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
             key={gameKey}
             difficulty={difficulty}
             onComplete={handleGameComplete}
+            onExit={() => setSelectedGameId(null)}
           />
         );
       case 'game_object_recall':
@@ -205,6 +207,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
             key={gameKey}
             difficulty={difficulty}
             onComplete={handleGameComplete}
+            onExit={() => setSelectedGameId(null)}
           />
         );
       case 'game_daily_routine_recall':
@@ -213,6 +216,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
             key={gameKey}
             difficulty={difficulty}
             onComplete={handleGameComplete}
+            onExit={() => setSelectedGameId(null)}
           />
         );
       case 'game_object_recognition':
@@ -221,6 +225,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
             key={gameKey}
             difficulty={difficulty}
             onComplete={handleGameComplete}
+            onExit={() => setSelectedGameId(null)}
           />
         );
       case 'game_familiar_sounds':
@@ -240,6 +245,31 @@ export const GameContainer: React.FC<GameContainerProps> = ({
                 accuracy,
                 attempts,
                 responseTimeMs: 1400,
+              })
+            }
+          />
+        );
+      case 'game_personal_memory':
+        return (
+          <PersonalMemoryGame
+            key={gameKey}
+            patientId={patient.id}
+            patientName={patient.name}
+            difficulty={difficulty}
+            currentLang={currentLang}
+            onExit={() => setSelectedGameId(null)}
+            onComplete={(stats) =>
+              handleGameComplete({
+                gameId: 'game_personal_memory',
+                gameTitle: 'Personal Memory Engagement (Showcase)',
+                category: 'FAMILY_MEMORY',
+                difficulty,
+                durationSeconds: 90,
+                score: stats.score,
+                accuracy: stats.accuracy,
+                attempts: stats.attempts,
+                responseTimeMs: stats.responseTimeMs,
+                notes: stats.notes || `Assistance used: ${stats.assistanceUsed}`,
               })
             }
           />

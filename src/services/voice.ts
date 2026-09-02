@@ -124,6 +124,10 @@ class VoiceService {
   }
 
   // Fast offline/local intent parser with conversational fallback
+  public matchIntentOffline(transcript: string, lang: SupportedLanguage): VoiceCommandResult {
+    return this.parseLocalIntent(transcript, lang);
+  }
+
   public parseLocalIntent(transcript: string, lang: SupportedLanguage): VoiceCommandResult {
     const lower = transcript.toLowerCase();
 
