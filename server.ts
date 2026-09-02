@@ -455,7 +455,7 @@ let AUDIT_LOGS: ServerAuditLog[] = [
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    version: '1.0.0-sih26003',
+    version: '1.0.0',
     appName: 'MindCare NER',
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),

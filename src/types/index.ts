@@ -366,15 +366,11 @@ export interface PrivacyCenterConfig {
   lastDataExportedAt?: string;
 }
 
-// Renamed from SIHSimulationType to SimulationArchetype for production domain terminology
 export type SimulationArchetype = 
   | 'HIGH_ENGAGEMENT' 
   | 'MODERATE_ENGAGEMENT' 
   | 'LOW_ENGAGEMENT' 
   | 'OFFLINE_MODE';
-
-// Backward compatibility alias during transition
-export type SIHSimulationType = SimulationArchetype;
 
 export interface CulturalItem {
   id: string;

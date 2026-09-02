@@ -270,7 +270,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {t.appName}
               </h1>
               <span className="bg-[#14283D] border border-[#243A50] text-[#38D9C5] text-[10px] font-black px-2 py-0.5 rounded-full">
-                SIH26003
+                AI Platform
               </span>
             </div>
             <p className="text-xs font-semibold text-[#B7C5D6] hidden sm:block">

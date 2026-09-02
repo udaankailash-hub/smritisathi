@@ -13,7 +13,7 @@ export function Hero({ onSelectRole, onOpenDemo }) {
       <div className="max-w-5xl mx-auto text-center relative z-10 px-4">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold mb-6">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Ministry of Development of North Eastern Region (MDoNER) • SIH26003</span>
+          <span>Regional Cognitive Support & Engagement Platform</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black text-slate-100 tracking-tight leading-[1.1] mb-6">
@@ -44,7 +44,7 @@ export function Hero({ onSelectRole, onOpenDemo }) {
             icon={PlayCircle}
             className="min-h-[58px]"
           >
-            Start 90s SIH Demo
+            Start Interactive Demo
           </Button>
         </div>
 

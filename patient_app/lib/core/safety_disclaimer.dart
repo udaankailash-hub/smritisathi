@@ -5,13 +5,12 @@ class SafetyDisclaimer {
       "or replace doctors or qualified healthcare workers.";
 
   static const String shortNotice =
-      "Non-diagnostic supportive engagement tool. SIH26003 compliant.";
+      "Non-diagnostic supportive engagement tool.";
 }
 
 class AppConstants {
   static const String appName = "MementoCare AI";
   static const String tagline = "AI that remembers the person, not just the score.";
-  static const String sihProblemStatement = "SIH26003";
   
   // Theme Colors
   static const int primaryDarkBg = 0xFF07111F;

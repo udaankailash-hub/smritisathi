@@ -1,4 +1,4 @@
-# MementoCare AI — 90-Second SIH Demonstration Script
+# MementoCare AI — Platform Demonstration Script
 
 ## Persona
 - **Demo Senior:** Abeni (72 years old, Guwahati, Assam)

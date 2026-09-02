@@ -1,6 +1,5 @@
 -- =============================================================================
--- MEMENTOCARE AI — SIH 2026 SIH26003
--- PostgreSQL / Supabase Schema Definition & Row Level Security (RLS)
+-- MEMENTOCARE AI — DATABASE SCHEMA DEFINITION & ROW LEVEL SECURITY (RLS)
 -- =============================================================================
 
 -- Enable UUID extension

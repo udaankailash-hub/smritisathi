@@ -54,11 +54,11 @@ export function Navbar({
                 MementoCare <span className="text-teal-400">AI</span>
               </span>
               <Badge variant="teal" size="xs">
-                SIH26003
+                AI Platform
               </Badge>
             </div>
             <p className="text-[10px] text-slate-400 font-medium hidden sm:block">
-              MDoNER • North East Region Cognitive Support
+              North East Region Cognitive Support Platform
             </p>
           </div>
         </div>
@@ -120,7 +120,7 @@ export function Navbar({
             <Globe className="w-3.5 h-3.5 text-slate-400 absolute left-2 pointer-events-none" />
           </div>
 
-          {/* 90-Second SIH Presentation Demo Button */}
+          {/* Interactive Presentation Demo Button */}
           <Button
             onClick={onOpenDemo}
             variant="primary"
@@ -128,7 +128,7 @@ export function Navbar({
             icon={PlayCircle}
             className="hidden sm:inline-flex bg-gradient-to-r from-teal-600 to-teal-500 shadow-teal-500/20 shadow-md"
           >
-            SIH 90s Demo
+            Interactive Demo
           </Button>
 
           {/* Mobile Menu Toggle */}
@@ -173,7 +173,7 @@ export function Navbar({
               icon={PlayCircle}
               className="w-full"
             >
-              Start 90s SIH Demo
+              Start Interactive Demo
             </Button>
           </div>
         </div>

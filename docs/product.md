@@ -2,8 +2,6 @@
 
 ## Product Identity
 - **Product Name:** MementoCare AI
-- **SIH Problem Statement:** SIH26003 — AI-Based Cognitive Gaming and Memory Assistance Platform for Elderly Dementia Patients in the North Eastern Region
-- **Organisation:** Ministry of Development of North Eastern Region (MDoNER)
 - **Tagline:** *"AI that remembers the person, not just the score."*
 - **Positioning:** *"Personal. Adaptive. Voice-enabled. Offline. Connected to care."*
 

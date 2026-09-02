@@ -536,7 +536,7 @@ export const MindCareCompletePlatform: React.FC<MindCareCompletePlatformProps> =
       </section>
 
       {/* =========================================================================
-          SECTION 2: PROBLEM STATEMENT (4 CARDS + FLOW)
+          SECTION 2: REGIONAL HEALTHCARE CHALLENGES (4 CARDS + FLOW)
           ========================================================================= */}
       <section
         id="section-problem"
@@ -2090,7 +2090,7 @@ export const MindCareCompletePlatform: React.FC<MindCareCompletePlatformProps> =
               <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#19C3B1]/40 bg-[#07111F] p-0.5 shadow-md flex-shrink-0">
                 <img src="/logo.png" alt="MementoCare AI Logo" className="w-full h-full object-cover rounded-lg" />
               </div>
-              <h3 className="font-black text-lg text-[#F4F8FC] tracking-tight">MementoCare AI • SIH26003</h3>
+              <h3 className="font-black text-lg text-[#F4F8FC] tracking-tight">MementoCare AI</h3>
             </div>
             <p className="text-xs text-[#B7C5D6] leading-relaxed max-w-md">
               AI that remembers the person, not just the score. An AI-enabled personalized cognitive assistance
@@ -2105,7 +2105,7 @@ export const MindCareCompletePlatform: React.FC<MindCareCompletePlatformProps> =
                 onClick={() => scrollToSection('section-hero')}
                 className="text-left hover:text-[#F4F8FC] cursor-pointer"
               >
-                Hero & Problem
+                Hero & Overview
               </button>
               <button
                 onClick={() => scrollToSection('section-3d-hub')}

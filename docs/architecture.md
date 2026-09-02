@@ -3,9 +3,6 @@
 ## Tagline
 **"AI that remembers the person, not just the score."**
 
-## SIH Problem Statement Reference
-**SIH26003 — AI-Based Cognitive Gaming and Memory Assistance Platform for Elderly Dementia Patients in the North Eastern Region**
-
 ---
 
 ## 1. Architectural Philosophy

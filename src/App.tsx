@@ -554,7 +554,7 @@ export default function App() {
         onApplySimulation={handleApplyDemonstrationMode}
       />
 
-      {/* Interactive 90-Second SIH Demonstration Walkthrough Modal */}
+      {/* Interactive Demonstration Walkthrough Modal */}
       <DemoWalkthroughModal
         isOpen={isDemoWalkthroughOpen}
         onClose={() => setIsDemoWalkthroughOpen(false)}

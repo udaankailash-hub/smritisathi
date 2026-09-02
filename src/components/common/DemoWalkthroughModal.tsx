@@ -280,10 +280,10 @@ export const DemoWalkthroughModal: React.FC<DemoWalkthroughModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-black text-white">
-                  MementoCare AI — 90-Second SIH Demonstration
+                  MementoCare AI — Interactive Platform Demonstration
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                  SIH26003
+                  Live Walkthrough
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -365,7 +365,7 @@ export const DemoWalkthroughModal: React.FC<DemoWalkthroughModalProps> = ({
           {/* Key Architectural Highlights */}
           <div className="space-y-3">
             <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider">
-              SIH26003 Requirement & Technical Capabilities Demonstrated:
+              Core Technical Capabilities & Clinical Architecture:
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {step.keyHighlights.map((item, idx) => (
